@@ -33,7 +33,7 @@ const getAllProducts = async (req: Request, res: Response) => {
     }
 };
 
-const getSportBikeProducts = async(req: Request, res: Response) => {
+const getSportBikeProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find({ category: 'sport-bike' }).sort({ date: -1 });
         res.send(products);
@@ -41,7 +41,7 @@ const getSportBikeProducts = async(req: Request, res: Response) => {
         res.status(500).send(error);
     }
 }
-const getNakedBikeProducts = async(req: Request, res: Response) => {
+const getNakedBikeProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find({ category: 'naked-bike' }).sort({ date: -1 });
         res.send(products);
@@ -49,6 +49,7 @@ const getNakedBikeProducts = async(req: Request, res: Response) => {
         res.status(500).send(error);
     }
 }
+
 const getAdventureProducts = async(req: Request, res: Response) => {
     try {
         const products = await Product.find({ category: 'adventure' }).sort({ date: -1 });
@@ -108,7 +109,7 @@ const uploadImages = async (req: Request, res: Response) => {
         return res.status(400).json({ success: 0, message: 'No files uploaded' });
     }
 
-    const imageUrls = (req.files as Express.Multer.File[]).map(file => `http://localhost:${port}/images/${file.filename}`);
+    const imageUrls = (req.files as Express.Multer.File[]).map(file => `http://localhost:${port}/api/images/${file.filename}`);
     
     res.json({
         success: 1,
