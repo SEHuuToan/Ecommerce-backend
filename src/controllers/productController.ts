@@ -27,7 +27,7 @@ const getAllProducts = async (req: Request, res: Response) => {
  const getLatestProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find().sort({ date: -1 }).limit(6);
-        res.send(products);
+        res.json(products)
     } catch (error) {
         res.status(500).send(error);
     }
@@ -36,7 +36,7 @@ const getAllProducts = async (req: Request, res: Response) => {
 const getSportBikeProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find({ category: 'sport-bike' }).sort({ date: -1 });
-        res.send(products);
+        res.json(products);
     } catch (error) {
         res.status(500).send(error);
     }

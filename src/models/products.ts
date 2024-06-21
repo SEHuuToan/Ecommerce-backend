@@ -14,5 +14,5 @@ const ProductSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now },
     status: { type: Boolean, default: true }
 });
-const Product = mongoose.model('product', ProductSchema);
+const Product = mongoose.model('products', ProductSchema);
 export default Product;
