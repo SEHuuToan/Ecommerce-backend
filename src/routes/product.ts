@@ -1,20 +1,20 @@
 import { Router } from 'express';
 import productController from '../controllers/productController';
 import upload from '../middleware/upload';
-import Product from '../models/products';
+
 
 const router: Router = Router();
-const port = 4000;
 
 router.get('/all-product', productController.getAllProducts);
-router.get('/:id', productController.getProductById);
 router.get('/latest-product', productController.getLatestProducts);
-router.get('/product/sport-bike', productController.getSportBikeProducts);
-router.get('/product/naked-bike', productController.getNakedBikeProducts);
-router.get('/product/adventure', productController.getAdventureProducts);
-router.get('/product/classic', productController.getClassicProducts);
+router.get('/sport-bike', productController.getSportBikeProducts);
+router.get('/naked-bike', productController.getNakedBikeProducts);
+router.get('/adventure', productController.getAdventureProducts);
+router.get('/classic', productController.getClassicProducts);
 router.post('/', productController.createProduct);
-router.delete('/product/:id', productController.removeProduct);
+router.delete('/:id', productController.deleteProduct);
+router.get('/images', productController.getAllImage);
 router.post("/upload", upload.array('product', 12), productController.uploadImages);
-
+router.delete("/images/:filename", productController.deleteImage);
+router.get('/:id', productController.getProductById);
 export default router;

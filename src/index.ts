@@ -2,7 +2,6 @@ import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import productRoutes from './routes/product';
-import upload  from './middleware/upload';
 import path from 'path';
 const port = 4000;
 const app = express();
