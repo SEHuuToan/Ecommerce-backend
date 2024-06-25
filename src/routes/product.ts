@@ -12,6 +12,7 @@ router.get('/naked-bike', productController.getNakedBikeProducts);
 router.get('/adventure', productController.getAdventureProducts);
 router.get('/classic', productController.getClassicProducts);
 router.post('/', productController.createProduct);
+router.put('/update-product/:id', productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
 router.get('/images', productController.getAllImage);
 router.post("/upload", upload.array('product', 12), productController.uploadImages);

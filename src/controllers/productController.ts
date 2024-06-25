@@ -14,7 +14,7 @@ const getAllProducts = async (req: Request, res: Response) => {
     }
 };
 
- const getProductById = async (req: Request, res: Response) => {
+const getProductById = async (req: Request, res: Response) => {
     console.log('req: ', req)
     try {
         const product = await Product.findById(req.params.id);
@@ -27,7 +27,7 @@ const getAllProducts = async (req: Request, res: Response) => {
     }
 };
 
- const getLatestProducts = async (req: Request, res: Response) => {
+const getLatestProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find().sort({ date: -1 }).limit(6);
         res.json(products)
@@ -53,7 +53,7 @@ const getNakedBikeProducts = async (req: Request, res: Response) => {
     }
 }
 
-const getAdventureProducts = async(req: Request, res: Response) => {
+const getAdventureProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find({ category: 'adventure' }).sort({ date: -1 });
         res.send(products);
@@ -61,7 +61,7 @@ const getAdventureProducts = async(req: Request, res: Response) => {
         res.status(500).send(error);
     }
 }
-const getClassicProducts = async(req: Request, res: Response) => {
+const getClassicProducts = async (req: Request, res: Response) => {
     try {
         const products = await Product.find({ category: 'classic' }).sort({ date: -1 });
         res.send(products);
@@ -70,7 +70,7 @@ const getClassicProducts = async(req: Request, res: Response) => {
     }
 }
 
- const deleteProduct = async (req: Request, res: Response) => {
+const deleteProduct = async (req: Request, res: Response) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {
@@ -107,33 +107,39 @@ const createProduct = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 };
-const updateProduct = async(req: Request, res: Response) => {
+const updateProduct = async (req: Request, res: Response) => {
     try {
-        const productId = req.params._id;
+        const productId = req.params.id;
         const updatedFields = req.body;
-        if (!updatedFields) {
+        if (!updatedFields || Object.keys(updatedFields).length === 0) {
             return res.status(400).json({ success: 0, message: 'No data provided for update' });
         }
         // Tìm sản phẩm cần cập nhật trong CSDL
         const product = await Product.findByIdAndUpdate(productId, updatedFields, { new: true });
-         // Kiểm tra nếu không tìm thấy sản phẩm
-         if (!product) {
+        // Kiểm tra nếu không tìm thấy sản phẩm
+        if (!product) {
             return res.status(404).json({ success: 0, message: 'Product not found' });
         }
-         // Lưu sản phẩm đã cập nhật vào CSDL
-         await product.save();
-         res.json({
+        // Kiểm tra xem có sự thay đổi trong các trường yêu cầu
+        const requiredFields = ['name', 'odo', 'color', 'model', 'brand', 'option', 'category', 'price'];
+        const isRequiredFieldsChanged = requiredFields.some(field => updatedFields[field] !== undefined);
+        // Nếu không có thay đổi trong các trường yêu cầu
+        if (!isRequiredFieldsChanged) {
+            return res.status(400).json({ success: 0, message: 'No required fields were updated' });
+        }
+        // Lưu sản phẩm đã cập nhật vào CSDL
+        await product.save();
+        res.json({
             success: 1,
             message: 'Product updated successfully',
             updatedProduct: product,
         });
-
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ success: 0, message: 'Failed to update product' });
     }
 }
-const getAllImage =  async (req: Request, res: Response) => {
+const getAllImage = async (req: Request, res: Response) => {
     const imagesDir = path.join(__dirname, '../../upload/images');
     try {
         fs.promises.readdir(imagesDir).then(files => {
@@ -158,7 +164,7 @@ const uploadImages = async (req: Request, res: Response) => {
 }
 
 const deleteImage = async (req: Request, res: Response) => {
-    const {filename} = req.params;
+    const { filename } = req.params;
     if (!filename) {
         return res.status(400).json({ success: 0, message: 'Can\'t found image!' });
     }
