@@ -16,6 +16,6 @@ router.put('/update-product/:id', productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
 router.get('/images', productController.getAllImage);
 router.post("/upload", upload.array('product', 12), productController.uploadImages);
-router.delete("/images/:filename", productController.deleteImage);
+router.delete('/images/:productId/:filename', productController.deleteImage);
 router.get('/:id', productController.getProductById);
 export default router;
