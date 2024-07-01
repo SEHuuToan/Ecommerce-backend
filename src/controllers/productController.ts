@@ -1,8 +1,8 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Product from '../models/products';
 import path from 'path';
 import fs from 'fs';
-
+import upload from 'middleware/upload';
 const port = 4000;
 
 interface ProductInterface {
@@ -22,7 +22,7 @@ interface ProductInterface {
 
 const getAllProducts = async (req: Request, res: Response) => {
     try {
-        const products = await Product.find({});
+        const products = await Product.find({}).sort({ date: -1 });
         res.send(products);
     } catch (error) {
         res.status(500).send(error);
@@ -87,36 +87,58 @@ const getClassicProducts = async (req: Request, res: Response) => {
 
 const deleteProduct = async (req: Request, res: Response) => {
     try {
-        const product = await Product.findByIdAndDelete(req.params.id);
+        //logic xóa ảnh trước khi xóa product
+        const productId = req.params.id;
+        const product = await Product.findById(productId);
         if (!product) {
             return res.status(404).send({ message: 'Product not found' });
-        } else {
-            res.status(200).json({
-                success: true,
-                message: 'Product deleted successfully',
-                name: product.name
-            });
         }
+        // Lấy mảng hình ảnh từ sản phẩm
+        const productImages = product.image;
+        // Xóa từng hình ảnh trong sản phẩm
+        for (const imageUrl of productImages) {
+            const filename = imageUrl.split('/').pop();
+            try {
+                if (filename) {
+                    const filePath = path.join(__dirname, '../../upload/images', filename);
+                    fs.unlinkSync(filePath); // Xóa ảnh trực tiếp
+                }
+            } catch (error) {
+                console.error(`Failed to delete image: ${filename}`, error);
+            }
+        }
+        // Xóa sản phẩm sau khi đã xóa tất cả các hình ảnh
+        await Product.findByIdAndDelete(productId);
+        res.status(200).json({
+            success: true,
+            message: 'Product deleted successfully',
+            name: product.name
+        });
     } catch (error) {
         res.status(500).send(error);
     }
 };
 const createProduct = async (req: Request, res: Response) => {
     try {
-        // const lastProduct = await Product.findOne().sort({ id: -1 });
-        // const newId = lastProduct ? lastProduct.id + 1 : 1;
-        const imageUrls = req.body.image
-        if (!imageUrls || imageUrls.length === 0) {
-            return res.status(400).json({ success: 0, message: 'No image URLs provided' });
+        const files = req.files as Express.Multer.File[];
+        console.log(files);
+        if (!files || files.length === 0) {
+            return res.status(400).json({ success: 0, message: 'No images provided' });
         }
-        const product = new Product({
-            ...req.body,
-            image: imageUrls
-        });
+        const imageUrls = files.map(file => { return `http://localhost:${port}/api/images/${file.filename}` });
+        const productData = JSON.parse(req.body.product);
+        const requiredFields = ['price', 'category', 'option', 'brand', 'model', 'color', 'odo', 'name'];
+        for (const field of requiredFields) {
+            if (!productData[field]) {
+                return res.status(400).json({ success: 0, message: `Field ${field} is required` });
+            }
+        }
+        productData.image = imageUrls;
+        const product = new Product(productData);
         await product.save();
         res.json({
             success: true,
-            name: req.body.name,
+            product,
         })
     } catch (error) {
         res.status(500).send(error);
@@ -162,67 +184,79 @@ const updateProduct = async (req: Request, res: Response) => {
 const updateProduct2 = async (req: Request, res: Response) => {
     try {
         const productId = req.params.id;
-        const updatedFields: Partial<ProductInterface> = req.body;
-
-        if (!updatedFields || Object.keys(updatedFields).length === 0) {
-            return res.status(400).json({ success: 0, message: 'No data provided for update' });
-        }
-
-        // Lấy sản phẩm từ CSDL
-        const product = await Product.findById(productId).exec();
-        if (!product) {
-            return res.status(404).json({ success: 0, message: 'Product not found' });
-        }
-
-        // Kiểm tra xem có sự thay đổi trong các trường yêu cầu hoặc mảng image
-        const requiredFields: (keyof ProductInterface)[] = ['name', 'odo', 'color', 'model', 'brand', 'option', 'description', 'category', 'price', 'image'];
-        const isRequiredFieldsChanged = requiredFields.some(field => updatedFields[field] !== undefined && updatedFields[field] !== product[field]);
-        const isImageChanged = req.files && Array.isArray(req.files) && req.files.length > 0;
-
-        // Nếu không có bất kỳ thay đổi nào
-        if (!isRequiredFieldsChanged && !isImageChanged && (!req.files || req.files.length === 0)) {
-            return res.status(400).json({ success: 0, message: 'Không có thay đổi gì được cập nhật' });
-        }
-
-        // Cập nhật các trường nếu có thay đổi
-        if (isRequiredFieldsChanged) {
-            requiredFields.forEach(field => {
-                if (updatedFields[field] !== undefined) {
-                    (product as any)[field] = updatedFields[field];
+        const productData = JSON.parse(req.body.product);
+        const files = req.files as Express.Multer.File[];
+        let formDataChanged = false;
+        let fileListChanged = false;
+        let imageListChanged = false;
+        // Kiểm tra xem có thay đổi trong formData
+        if (productData) {
+            const productFromDB = await Product.findById(productId).exec();
+            if (!productFromDB) {
+                return res.status(404).json({ success: 0, message: 'Product not found' });
+            }
+            const fieldsToUpdate: (keyof ProductInterface)[] = ['name', 'odo', 'color', 'model', 'brand', 'option', 'description', 'category', 'price'];
+            // Kiểm tra từng trường xem có thay đổi so với dữ liệu hiện tại không
+            fieldsToUpdate.forEach(field => {
+                if (productData[field] !== undefined && productData[field] !== productFromDB[field]) {
+                    formDataChanged = true;
                 }
             });
-            await product.save();
-            return res.json({
-                success: 1,
-                message: 'Product data updated successfully',
-                updatedProduct: product,
-            });
-        }
-
-        // Cập nhật mảng image nếu có thay đổi
-        if (isImageChanged) {
-            try {
-                const imageUrls = await uploadImages(req.files as Express.Multer.File[], 4000); // Điều chỉnh cổng nếu cần
-                product.image = imageUrls ;
-                await product.save();
-                res.json({
-                    success: 1,
-                    message: 'Product updated successfully',
-                    updatedProduct: product,
+            // Kiểm tra xem có thay đổi trong mảng image so với productFromDB
+            if (productData.image && productData.image.length !== productFromDB.image.length) {
+                imageListChanged = true;
+            } else {
+                productData.image.forEach((imageUrl: string) => {
+                    if (!productFromDB.image.includes(imageUrl)) {
+                        imageListChanged = true;
+                    }
                 });
-            } catch (error) {
-                console.error('Error uploading images:', error);
-                return res.status(500).json({ success: 0, message: 'Failed to upload images' });
+                productFromDB.image.forEach((imageUrl: string) => {
+                    if (!productData.image.includes(imageUrl)) {
+                        imageListChanged = true;
+                    }
+                });
             }
         }
-        // Nếu không có thay đổi image, chỉ lưu các trường thông tin khác
-        await product.save();
-        res.json({
-            success: 1,
-            message: 'Product updated successfully',
-            updatedProduct: product,
-        });
+        // Kiểm tra xem có thay đổi trong fileList (có tệp mới được tải lên không)
+        if (files && files.length > 0) {
+            fileListChanged = true;
+        }
+        // Nếu không có gì thay đổi thì không cần update
+        if (!formDataChanged && !fileListChanged) {
+            return res.status(400).json({ success: 0, message: 'No changes detected for update' });
+        }
+        // Cập nhật sản phẩm nếu có thay đổi trong formData
+        if (formDataChanged) {
+            await Product.findByIdAndUpdate(productId, productData, { new: true });
+        }
+        // Cập nhật hình ảnh nếu có dữ liệu mới trong fileList
+        if (fileListChanged) {
+            const newImageUrls: string[] = [];
+            for (const file of files) {
+                const imageUrl = `http://localhost:${port}/api/images/${file.filename}`;
+                newImageUrls.push(imageUrl);
+            }
+            const product = await Product.findById(productId);
+            if (!product) {
+                return res.status(404).json({ success: 0, message: 'Product not found' });
+            }
+            // Lọc ra các URL hình ảnh còn lại sau khi so sánh với mảng `image` được gửi từ front-end
+            product.image = product.image.filter((imageUrl: string) => {
+                return productData.image.includes(imageUrl);
+            });
+            // Thêm các URL hình ảnh mới vào mảng image của sản phẩm
+            const promises = newImageUrls.map(async (imageUrl: string) => {
+                if (!product.image.includes(imageUrl)) {
+                    product.image.push(imageUrl);
+                }
+            });
+            await Promise.all(promises);
+            // Lưu lại sản phẩm sau khi đã cập nhật hình ảnh
+            await product.save();
+        }
 
+        res.json({ success: 1, message: 'Product updated successfully' });
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ success: 0, message: 'Failed to update product' });
@@ -242,15 +276,23 @@ const getAllImage = async (req: Request, res: Response) => {
     }
 }
 
-const uploadImages = async (req: Request, res: Response) => {
-    if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
-        return res.status(400).json({ success: 0, message: 'No files uploaded' });
+const uploadImages = async (req: Request, res: Response): Promise<string[]> => {
+    try {
+        if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+            throw new Error("Please upload a file!");
+        }
+        const files = req.files as Express.Multer.File[];
+        const imageUrls = files.map(file => {
+            return `http://localhost:${port}/api/images/${file.filename}`;
+        });
+        res.json({
+            success: 1,
+            imageUrls: imageUrls
+        });
+        return imageUrls;
+    } catch (error) {
+        throw new Error("Failed to upload images");
     }
-    const imageUrls = (req.files as Express.Multer.File[]).map(file => `http://localhost:${port}/api/images/${file.filename}`);
-    res.json({
-        success: 1,
-        imageUrls: imageUrls
-    });
 }
 
 const deleteImage = async (req: Request, res: Response) => {
@@ -288,14 +330,7 @@ const deleteImage = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 }
-// Helper function to compare two arrays for equality
-function arrayEquals(a: any[], b: any[]) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) return false;
-    }
-    return true;
-}
+
 export default {
     getAllProducts,
     getProductById,
