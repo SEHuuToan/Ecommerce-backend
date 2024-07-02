@@ -13,6 +13,7 @@ router.get('/adventure', productController.getAdventureProducts);
 router.get('/classic', productController.getClassicProducts);
 router.post('/create-product', upload.array('images', 12),productController.createProduct);
 router.put('/update-product/:id', upload.array('images', 12),productController.updateProduct2);
+router.get('/search/:query', productController.searchProduct);
 router.delete('/:id', productController.deleteProduct);
 router.get('/images', productController.getAllImage);
 router.post("/upload", upload.array('product', 12), productController.uploadImages);

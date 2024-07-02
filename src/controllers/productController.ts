@@ -29,7 +29,6 @@ const getAllProducts = async (req: Request, res: Response) => {
 };
 
 const getProductById = async (req: Request, res: Response) => {
-    console.log('req: ', req)
     try {
         const product = await Product.findById(req.params.id);
         if (!product) {
@@ -143,43 +142,6 @@ const createProduct = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 };
-const updateProduct = async (req: Request, res: Response) => {
-    try {
-        const productId = req.params.id;
-        const updatedFields: Partial<ProductInterface> = req.body;
-        if (!updatedFields || Object.keys(updatedFields).length === 0) {
-            return res.status(400).json({ success: 0, message: 'No data provided for update' });
-        }
-        // Lấy sản phẩm từ CSDL
-        const product = await Product.findById(productId).exec();
-        if (!product) {
-            return res.status(404).json({ success: 0, message: 'Product not found' });
-        }
-        // Kiểm tra xem có sự thay đổi trong các trường yêu cầu
-        const requiredFields: (keyof ProductInterface)[] = ['name', 'odo', 'color', 'model', 'brand', 'option', 'category', 'price'];
-        const isRequiredFieldsChanged = requiredFields.some(field => updatedFields[field] !== undefined && updatedFields[field] !== product[field]);
-        // Nếu không có thay đổi trong các trường yêu cầu
-        if (!isRequiredFieldsChanged) {
-            return res.status(400).json({ success: 0, message: 'No required fields were updated' });
-        }
-        // Cập nhật sản phẩm
-        requiredFields.forEach(field => {
-            if (updatedFields[field] !== undefined) {
-                (product as any)[field] = updatedFields[field];
-            }
-        });
-        // Lưu sản phẩm đã cập nhật vào CSDL
-        await product.save();
-        res.json({
-            success: 1,
-            message: 'Product updated successfully',
-            updatedProduct: product,
-        });
-    } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).json({ success: 0, message: 'Failed to update product' });
-    }
-}
 const updateProduct2 = async (req: Request, res: Response) => {
     try {
         const productId = req.params.id;
@@ -259,6 +221,20 @@ const updateProduct2 = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).json({ success: 0, message: 'Failed to update product' });
+    }
+}
+const searchProduct = async (req: Request, res: Response) => {
+    try {
+        const query = req.params.query;
+        if (!query) {
+            return res.status(400).send({ message: 'Query parameter is missing' });
+        }
+        const product = await Product.find({
+            name: { $regex: query, $options: 'i' }
+        }).limit(5);  
+        res.send(product);
+    } catch (error) {
+        res.status(500).send(error);
     }
 }
 const getAllImage = async (req: Request, res: Response) => {
@@ -341,6 +317,7 @@ export default {
     deleteProduct,
     createProduct,
     updateProduct2,
+    searchProduct,
     getAllImage,
     uploadImages,
     deleteImage,
