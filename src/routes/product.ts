@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import productController from '../controllers/productController';
 import upload from '../middleware/upload';
-
+import uploadCloudinary from '../middleware/uploadCloudinary';
 
 const router: Router = Router();
 
@@ -11,7 +11,7 @@ router.get('/sport-bike', productController.getSportBikeProducts);
 router.get('/naked-bike', productController.getNakedBikeProducts);
 router.get('/adventure', productController.getAdventureProducts);
 router.get('/classic', productController.getClassicProducts);
-router.post('/create-product', upload.array('images', 12),productController.createProduct);
+router.post('/create-product', uploadCloudinary, productController.createProduct);
 router.put('/update-product/:id', upload.array('images', 12),productController.updateProduct2);
 router.get('/search/:query', productController.searchProduct);
 router.delete('/:id', productController.deleteProduct);

@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import Product from '../models/products';
 import path from 'path';
 import fs from 'fs';
-
+import uploadCloudinary from '../middleware/uploadCloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
+import { Readable } from 'stream';
 const port = 4000;
 
 interface ProductInterface {
@@ -18,6 +21,10 @@ interface ProductInterface {
     price: number;
     status: boolean;
     description: string;
+}
+const convertImageToBase64String = (file: Express.Multer.File) => {
+    const base64String = file.buffer.toString('base64');
+    return `data:${file.mimetype};base64,${base64String}`;
 }
 
 const getAllProducts = async (req: Request, res: Response) => {
@@ -94,16 +101,20 @@ const deleteProduct = async (req: Request, res: Response) => {
         }
         // Lấy mảng hình ảnh từ sản phẩm
         const productImages = product.image;
+        console.log('productImages', productImages);
         // Xóa từng hình ảnh trong sản phẩm
         for (const imageUrl of productImages) {
-            const filename = imageUrl.split('/').pop();
+            console.log('imageUrl', imageUrl);
             try {
-                if (filename) {
-                    const filePath = path.join(__dirname, '../../upload/images', filename);
-                    fs.unlinkSync(filePath); // Xóa ảnh trực tiếp
+                const deleteImage = await cloudinary.uploader.destroy(imageUrl)
+                console.log('res', deleteImage);
+                if (deleteImage.result === 'ok') {
+                    console.log(`Deleted image successfully`);
+                } else {
+                    console.error(`Failed to delete image`);
                 }
             } catch (error) {
-                console.error(`Failed to delete image: ${filename}`, error);
+                console.error(`Failed to delete image: ${error.message}`);
             }
         }
         // Xóa sản phẩm sau khi đã xóa tất cả các hình ảnh
@@ -117,22 +128,31 @@ const deleteProduct = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 };
+
+
 const createProduct = async (req: Request, res: Response) => {
     try {
         const files = req.files as Express.Multer.File[];
         console.log(files);
         if (!files || files.length === 0) {
-            return res.status(400).json({ success: 0, message: 'No images provided' });
+            return res.status(400).json({ success: 0, message: 'No images uploaded' });
         }
-        const imageUrls = files.map(file => { return `http://localhost:${port}/api/images/${file.filename}` });
         const productData = JSON.parse(req.body.product);
+        for (let file of files) {
+            const res = await cloudinary.uploader.upload(convertImageToBase64String(file), {
+                folder: 'products',
+                format: 'png'||'jpg'||'jpeg'||'svg',
+            });
+            productData.image.push(
+                res.secure_url,
+            );
+        }
         const requiredFields = ['price', 'category', 'option', 'brand', 'model', 'color', 'odo', 'name'];
         for (const field of requiredFields) {
             if (!productData[field]) {
                 return res.status(400).json({ success: 0, message: `Field ${field} is required` });
             }
         }
-        productData.image = imageUrls;
         const product = new Product(productData);
         await product.save();
         res.json({
@@ -143,6 +163,33 @@ const createProduct = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 };
+
+// const createProduct = async (req: Request, res: Response) => {
+//     try {
+//         const files = req.files as Express.Multer.File[];
+//         console.log(files);
+//         if (!files || files.length === 0) {
+//             return res.status(400).json({ success: 0, message: 'No images provided' });
+//         }
+//         const imageUrls = files.map(file => { return `http://localhost:${port}/api/images/${file.filename}` });
+//         const productData = JSON.parse(req.body.product);
+//         const requiredFields = ['price', 'category', 'option', 'brand', 'model', 'color', 'odo', 'name'];
+//         for (const field of requiredFields) {
+//             if (!productData[field]) {
+//                 return res.status(400).json({ success: 0, message: `Field ${field} is required` });
+//             }
+//         }
+//         productData.image = imageUrls;
+//         const product = new Product(productData);
+//         await product.save();
+//         res.json({
+//             success: true,
+//             product,
+//         })
+//     } catch (error) {
+//         res.status(500).send(error);
+//     }
+// };
 const updateProduct2 = async (req: Request, res: Response) => {
     try {
         const productId = req.params.id;
@@ -232,7 +279,7 @@ const searchProduct = async (req: Request, res: Response) => {
         }
         const product = await Product.find({
             name: { $regex: query, $options: 'i' }
-        }).limit(5);  
+        }).limit(5);
         res.send(product);
     } catch (error) {
         res.status(500).send(error);
