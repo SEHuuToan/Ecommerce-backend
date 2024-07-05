@@ -100,14 +100,11 @@ const deleteProduct = async (req: Request, res: Response) => {
             return res.status(404).send({ message: 'Product not found' });
         }
         // Lấy mảng hình ảnh từ sản phẩm
-        const productImages = product.image;
-        console.log('productImages', productImages);
+        const productImages = product.image.map(img => img.public_id)
         // Xóa từng hình ảnh trong sản phẩm
         for (const imageUrl of productImages) {
-            console.log('imageUrl', imageUrl);
             try {
                 const deleteImage = await cloudinary.uploader.destroy(imageUrl)
-                console.log('res', deleteImage);
                 if (deleteImage.result === 'ok') {
                     console.log(`Deleted image successfully`);
                 } else {
@@ -139,13 +136,14 @@ const createProduct = async (req: Request, res: Response) => {
         }
         const productData = JSON.parse(req.body.product);
         for (let file of files) {
-            const res = await cloudinary.uploader.upload(convertImageToBase64String(file), {
+            const result = await cloudinary.uploader.upload(convertImageToBase64String(file), {
                 folder: 'products',
-                format: 'png'||'jpg'||'jpeg'||'svg',
+                format: 'png' || 'jpg' || 'jpeg' || 'svg',
             });
-            productData.image.push(
-                res.secure_url,
-            );
+            productData.image.push({
+                url: result.secure_url,
+                public_id: result.public_id,
+            });
         }
         const requiredFields = ['price', 'category', 'option', 'brand', 'model', 'color', 'odo', 'name'];
         for (const field of requiredFields) {
@@ -298,6 +296,16 @@ const getAllImage = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 }
+const getAllImageCloudinary = async (req: Request, res: Response) => {
+    try {
+        const  resources  = await cloudinary.api.resources({ type: 'upload', max_results: 100 }); // Adjust max_results as needed
+        // resources is an array of all images in your Cloudinary account
+        return resources;
+    } catch (error) {
+        console.error('Error fetching images:', error);
+        throw error;
+    }
+}
 
 const uploadImages = async (req: Request, res: Response): Promise<string[]> => {
     try {
@@ -367,6 +375,7 @@ export default {
     updateProduct2,
     searchProduct,
     getAllImage,
+    getAllImageCloudinary,
     uploadImages,
     deleteImage,
 }
