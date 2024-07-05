@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Product from '../models/products';
 import path from 'path';
 import fs from 'fs';
+
 const port = 4000;
 
 interface ProductInterface {
