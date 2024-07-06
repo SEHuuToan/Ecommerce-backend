@@ -239,26 +239,31 @@ const updateProduct2 = async (req: Request, res: Response) => {
         }
         // Cập nhật hình ảnh nếu có dữ liệu mới trong fileList
         if (fileListChanged) {
-            const newImageUrls: string[] = [];
-            for (const file of files) {
-                const imageUrl = `http://localhost:${port}/api/images/${file.filename}`;
-                newImageUrls.push(imageUrl);
+            const newImageUrls:{url: string, public_id: string}[] = [];
+            for (let file of files) {
+                const result = await cloudinary.uploader.upload(convertImageToBase64String(file),{
+                    folder: 'products',
+                    format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                });
+                newImageUrls.push({
+                    url: result.secure_url,
+                    public_id: result.public_id,
+                });
             }
             const product = await Product.findById(productId);
             if (!product) {
                 return res.status(404).json({ success: 0, message: 'Product not found' });
             }
             // Lọc ra các URL hình ảnh còn lại sau khi so sánh với mảng `image` được gửi từ front-end
-            product.image = product.image.filter((imageUrl: string) => {
-                return productData.image.includes(imageUrl);
+            product.image = product.image.filter((image) => {
+                return productData.image.some((img: any) => img.url === image.url);
             });
             // Thêm các URL hình ảnh mới vào mảng image của sản phẩm
-            const promises = newImageUrls.map(async (imageUrl: string) => {
-                if (!product.image.includes(imageUrl)) {
-                    product.image.push(imageUrl);
+            newImageUrls.forEach(newImage => {
+                if (!product.image.some((img) => img.url === newImage.url)) {
+                    product.image.push(newImage);
                 }
             });
-            await Promise.all(promises);
             // Lưu lại sản phẩm sau khi đã cập nhật hình ảnh
             await product.save();
         }
@@ -283,22 +288,25 @@ const searchProduct = async (req: Request, res: Response) => {
         res.status(500).send(error);
     }
 }
-const getAllImage = async (req: Request, res: Response) => {
-    const imagesDir = path.join(__dirname, '../../upload/images');
-    try {
-        fs.promises.readdir(imagesDir).then(files => {
-            const imageUrls = files.map(file => `http://localhost:${port}/upload/images/${file}`);
-            res.json({ success: 1, images: imageUrls });
-        }).catch(err => {
-            res.status(500).json({ success: 0, message: 'Unable to scan directory' });
-        });
-    } catch (error) {
-        res.status(500).send(error);
-    }
-}
+// const getAllImage = async (req: Request, res: Response) => {
+//     const imagesDir = path.join(__dirname, '../../upload/images');
+//     try {
+//         fs.promises.readdir(imagesDir).then(files => {
+//             const imageUrls = files.map(file => `http://localhost:${port}/upload/images/${file}`);
+//             res.json({ success: 1, images: imageUrls });
+//         }).catch(err => {
+//             res.status(500).json({ success: 0, message: 'Unable to scan directory' });
+//         });
+//     } catch (error) {
+//         res.status(500).send(error);
+//     }
+// }
 const getAllImageCloudinary = async (req: Request, res: Response) => {
+    const options = {
+        resource_type:"image", folder:"products", max_results: 100
+    }
     try {
-        const  resources  = await cloudinary.api.resources({ type: 'upload', max_results: 100 }); // Adjust max_results as needed
+        const resources  = await cloudinary.api.resources({ options }); // Adjust max_results as needed
         // resources is an array of all images in your Cloudinary account
         return resources;
     } catch (error) {
@@ -327,8 +335,8 @@ const uploadImages = async (req: Request, res: Response): Promise<string[]> => {
 }
 
 const deleteImage = async (req: Request, res: Response) => {
-    const { productId, filename } = req.params;
-    if (!productId || !filename) {
+    const { productId, filename  } = req.params;
+    if (!productId || !filename ) {
         return res.status(400).json({ success: 0, message: 'Can\'t found image!' });
     }
     try {
@@ -337,25 +345,23 @@ const deleteImage = async (req: Request, res: Response) => {
         if (!product) {
             return res.status(404).json({ success: 0, message: 'Product not found!' });
         }
-        // Lấy danh sách các hình ảnh từ sản phẩm
-        const imageArray = product.image;
         // Kiểm tra nếu hình ảnh tồn tại trong mảng image
-        if (!imageArray.includes(`http://localhost:4000/api/images/${filename}`)) {
+        const imageIndex = product.image.findIndex(img => img.url.includes(filename));
+        if (imageIndex === -1) {
             return res.status(404).json({ success: 0, message: 'Image not found in product!' });
         }
-        const filePath = path.join(__dirname, '../../upload/images', filename)
-        fs.unlink(filePath, async (error) => {
-            if (error) {
-                console.error('Failed to delete image:', error);
-                return res.status(500).json({ success: 0, message: 'Failed to delete image!' });
-            }
-            // Xóa URL của ảnh trong mảng image
-            const updatedImageArray = imageArray.filter(img => img !== `http://localhost:4000/api/images/${filename}`);
-            // Cập nhật lại product trong database
-            product.image = updatedImageArray;
-            await product.save();
-            res.json({ success: 1, message: 'Image deleted and product updated successfully!', product });
-        });
+        // Lấy ra public_id từ image tìm được trong mảng image
+        const public_id = product.image[imageIndex].public_id;
+         // Xóa hình ảnh khỏi Cloudinary
+         const deleteResult = await cloudinary.uploader.destroy(public_id);
+         if (deleteResult.result !== 'ok') {
+             return res.status(500).json({ success: 0, message: 'Failed to delete image from Cloudinary!' });
+         }
+        // Xóa URL của ảnh trong mảng image
+        product.image.splice(imageIndex, 1);
+        // Cập nhật lại product trong database
+        await product.save();
+        res.json({ success: 1, message: 'Image deleted and product updated successfully!', product });
     } catch (error) {
         console.error('Caught error:', error);
         res.status(500).send(error);
@@ -374,7 +380,6 @@ export default {
     createProduct,
     updateProduct2,
     searchProduct,
-    getAllImage,
     getAllImageCloudinary,
     uploadImages,
     deleteImage,
