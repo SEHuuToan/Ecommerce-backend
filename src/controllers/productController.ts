@@ -1,11 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import Product from '../models/products';
-import path from 'path';
-import fs from 'fs';
-import uploadCloudinary from '../middleware/uploadCloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { v2 as cloudinary } from 'cloudinary';
-import { Readable } from 'stream';
 const port = 4000;
 
 interface ProductInterface {

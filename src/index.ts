@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import productRoutes from './routes/product';
+import authRoutes from './routes/authRoutes';
 import path from 'path';
 import dotenv from 'dotenv';
 
@@ -25,4 +26,5 @@ app.listen(port, hostname,  () => {
 });
 
 app.use('/api/products', productRoutes);
-app.use('/api/images', express.static(path.resolve(__dirname, '../upload/images')));
+app.use(authRoutes)
+// app.use('/api/images', express.static(path.resolve(__dirname, '../upload/images')));
