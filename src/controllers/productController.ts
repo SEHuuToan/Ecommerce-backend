@@ -130,7 +130,7 @@ const deleteProduct = async (req: Request, res: Response) => {
 const createProduct = async (req: Request, res: Response) => {
     try {
         const files = req.files as Express.Multer.File[];
-        console.log(files);
+        console.log( 'files: ',files);
         if (!files || files.length === 0) {
             return res.status(400).json({ success: 0, message: 'No images uploaded' });
         }
@@ -139,6 +139,7 @@ const createProduct = async (req: Request, res: Response) => {
             const result = await cloudinary.uploader.upload(convertImageToBase64String(file), {
                 folder: 'products',
                 format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
             });
             productData.image.push({
                 url: result.secure_url,
@@ -244,6 +245,7 @@ const updateProduct2 = async (req: Request, res: Response) => {
                 const result = await cloudinary.uploader.upload(convertImageToBase64String(file),{
                     folder: 'products',
                     format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                    transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
                 });
                 newImageUrls.push({
                     url: result.secure_url,
