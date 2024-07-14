@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import User from '../models/userAdmins';
-
+import { hashPassword, comparePassword } from '../services/authService';
 interface UserInterface {
     username: string,
     password: string,
@@ -32,7 +32,9 @@ const SignUpPost = async (req: Request, res: Response) => {
         if (existingUser) {
             return res.status(400).send('Username already exists'); //đã tồn tại người dùng thi k tao account
         }
-        const result = await User.create({ username, password })
+       const hashedPassword = await hashPassword(password);
+       const newUser = new User({username, password: hashedPassword});
+        const result = await newUser.save();
         res.status(200).json(result);
     } catch (error) {
         handleError(error);
@@ -42,10 +44,21 @@ const SignUpPost = async (req: Request, res: Response) => {
 };
 const LoginPost = async (req: Request, res: Response) => {
     const { username, password } = req.body;
+    if(!username || !password){
+        return res.status(400).send('Username or password is required'); //kiem tra xem front-end gui xuong BE du username or password hay khong
+    }
     try {
-        const res = await User.create({ username, password })
+        const user = await User.findOne({username});
+        if(!user){
+            return res.status(400).send('Sai tai khoan hoac mat khau');
+        }
+        const isMatch = await comparePassword(password, user.password)
+        if(!isMatch){
+            return res.status(400).send('Sai tai khoan hoac mat khau');
+        }
+        res.status(200).json(isMatch);
     } catch (error) {
-
+        console.error('Login error:', error);
     }
 };
 export default {
