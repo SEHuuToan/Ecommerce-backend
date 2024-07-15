@@ -1,12 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/userAdmins';
 import { hashPassword, comparePassword } from '../services/authService';
-// import jwt from 'jsonwebtoken';
-
-interface UserInterface {
-    username: string,
-    password: string,
-}
+import { generateToken } from '../utils/authUtils';
 //handle Error
 const handleError = (err: any) => {
     console.log(err.message, err.code);
@@ -52,25 +47,13 @@ const LoginPost = async (req: Request, res: Response) => {
         if(!isMatch){
             return res.status(400).send('Sai tai khoan hoac mat khau');
         }
-        res.status(200).json(isMatch);
+        const token = generateToken(username);
+        res.status(200).json({token});
     } catch (error) {
         console.error('Login error:', error);
+        res.status(500).send('Internal server error.');
     }
 };
-// const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-//     const token = req.headers.authorization?.split(' ')[1];
-//     if (!token) {
-//       return res.status(401).json({ message: 'Không có token' });
-//     }
-  
-//     jwt.verify(token, 'SECRET_KEY', (err, decoded) => {
-//       if (err) {
-//         return res.status(401).json({ message: 'Token không hợp lệ' });
-//       }
-//       req.user = decoded;
-//       next();
-//     });
-//   };
 export default {
     SignUpPost,
     LoginPost
