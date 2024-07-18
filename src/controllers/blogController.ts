@@ -195,11 +195,46 @@ const deleteBlog = async (req: Request, res: Response) => {
         name: blogs.title,
     });
 };
+const deleteImageBlog = async (req: Request, res: Response) => {
+    const blogId = req.params.id;
+    const filename   = req.params;
+    if (!blogId || !filename ) {
+        return res.status(400).json({ success: 0, message: 'Can\'t found image!' });
+    }
+    try {
+        // Lấy sản phẩm từ database
+        const blog = await Blog.findById(blogId);
+        if (!blog) {
+            return res.status(404).json({ success: 0, message: 'Blog not found!' });
+        }
+        // Kiểm tra nếu hình ảnh tồn tại trong mảng image
+        const imageIndex = blog.image.findIndex(img => img.url.includes(filename));
+        if (imageIndex === -1) {
+            return res.status(404).json({ success: 0, message: 'Image not found in blog!' });
+        }
+        // Lấy ra public_id từ image tìm được trong mảng image
+        const public_id = blog.image[imageIndex].public_id;
+         // Xóa hình ảnh khỏi Cloudinary
+         const deleteResult = await cloudinary.uploader.destroy(public_id);
+         if (deleteResult.result !== 'ok') {
+             return res.status(500).json({ success: 0, message: 'Failed to delete image from Cloudinary!' });
+         }
+        // Xóa URL của ảnh trong mảng image
+        blog.image.splice(imageIndex, 1);
+        // Cập nhật lại blog trong database
+        await blog.save();
+        res.json({ success: 1, message: 'Image deleted and blog updated successfully!', blog });
+    } catch (error) {
+        console.error('Caught error:', error);
+        res.status(500).send(error);
+    }
+}
 
 export default {
     getAllBlogs,
     getBlogById,
     addBlog,
     updateBlog,
-    deleteBlog
+    deleteBlog,
+    deleteImageBlog,
 }
