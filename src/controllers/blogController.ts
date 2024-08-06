@@ -196,8 +196,11 @@ const deleteBlog = async (req: Request, res: Response) => {
     });
 };
 const deleteImageBlog = async (req: Request, res: Response) => {
-    const blogId = req.params.id;
-    const filename   = req.params;
+    const blogId = req.params.blogId;
+    const filename   = req.params.filename;
+    console.log("blogid", blogId);
+    console.log("filename", filename);
+
     if (!blogId || !filename ) {
         return res.status(400).json({ success: 0, message: 'Can\'t found image!' });
     }
