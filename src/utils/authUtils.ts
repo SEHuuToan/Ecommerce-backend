@@ -13,11 +13,11 @@ async function comparePasswordUtils(password: string, hashedPassword: string) {
     return await comparePassword(password, hashedPassword);
 }
 const generateAccessToken = (username: string): string => {
-    const accesstoken = jwt.sign({ username }, secretKey, { expiresIn: '1m' }); // Thời gian hết hạn là 1 giờ
+    const accesstoken = jwt.sign({ username }, secretKey, { expiresIn: '45m' }); // Thời gian hết hạn là 45phut
     return accesstoken;
 }
 const generateRefreshToken = (username: string): string => {
-    const refreshToken = jwt.sign({ username }, refreshSecretKey, { expiresIn: '1d' });
+    const refreshToken = jwt.sign({ username }, refreshSecretKey, { expiresIn: '1d' }); // Thời gian hết hạn là 1 ngay
     return refreshToken;
 }
 const verifyToken = (token: string, type: 'access' | 'refresh'): any => {
