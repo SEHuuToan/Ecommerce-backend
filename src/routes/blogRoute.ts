@@ -5,8 +5,8 @@ import authenticateJWT from '../middleware/authMiddleware';
 
 const router: Router = Router();
 
-router.get('/all-blog', authenticateJWT, blogController.getAllBlogs);
-router.get('/blog/:id', authenticateJWT, blogController.getBlogById);
+router.get('/all-blog', blogController.getAllBlogs);
+router.get('/blog/:id', blogController.getBlogById);
 router.post('/add-blog', authenticateJWT, uploadCloudinary, blogController.addBlog);
 router.put('/update-blog/:id', authenticateJWT, uploadCloudinary, blogController.updateBlog);
 router.delete('/blog/:id', authenticateJWT, blogController.deleteBlog);
