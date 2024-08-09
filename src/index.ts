@@ -18,7 +18,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser())
 //database connect with mongodb
-mongoose.connect("mongodb://localhost:27017/db_motocycle");
+mongoose.connect("mongodb://127.0.0.1:27017/db_motocycle");
 
 app.get("/", (req: Request, res: Response) => {
     res.send("Express app is running")
