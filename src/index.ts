@@ -71,7 +71,7 @@ app.use('/api/images', express.static(path.resolve(__dirname, '../upload/images'
 // Database connection
 mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/db_motocycle", {
 }).then(() => {
-    console.log('Kết nối MongoDB thành cônggg');
+    console.log('Kết nối MongoDB thành công');
 }).catch((error) => {
     console.error('Lỗi kết nối MongoDB:', error);
 });
