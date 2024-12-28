@@ -312,12 +312,12 @@ const searchProduct = async (req: Request, res: Response) => {
 //     }
 // }
 const getAllImageCloudinary = async () => {
-    // const options = {
-    //     resource_type:"image", folder:"products", max_results: 100
-    // }
+    const options = {
+        expression: "folder:products",
+        max_results: 100
+    };
     try {
-        const resources  = await cloudinary.search.expression('folder=products').execute(); // Adjust max_results as needed
-        // resources is an array of all images in your Cloudinary account
+        const resources  = await cloudinary.search.expression(options.expression).execute(); 
         return resources;
     } catch (error) {
         console.error('Error fetching images:', error);
