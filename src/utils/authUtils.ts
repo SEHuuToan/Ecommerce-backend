@@ -1,10 +1,15 @@
 import { hashPassword, comparePassword } from '../services/authService';
-import jwt, { TokenExpiredError } from 'jsonwebtoken';
+import jwt, { JwtPayload as DefaultJwtPayload } from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const refreshSecretKey = process.env.JWT_REFRESH_SECRET_KEY as string;
 const secretKey = process.env.JWT_SECRET_KEY as string;
+
+interface JwtPayload extends DefaultJwtPayload {
+    username: string;
+    role: 'user' | 'admin';
+}
 
 async function hashPasswordUtils(password: string) {
     return await hashPassword(password);
@@ -20,14 +25,13 @@ const generateRefreshToken = (username: string): string => {
     const refreshToken = jwt.sign({ username }, refreshSecretKey, { expiresIn: '1d' }); // Thời gian hết hạn là 1 ngay
     return refreshToken;
 }
-const verifyToken = (token: string, type: 'access' | 'refresh'): any => {
-    try {
-        const secret = type === 'access' ? secretKey : refreshSecretKey;
-        const decoded = jwt.verify(token, secret);
-        return decoded;
-    } catch (error) {
-        throw error
+const verifyToken = (token: string, type: 'access' | 'refresh'): JwtPayload => {
+    const secret = type === 'access' ? secretKey : refreshSecretKey;
+    const decoded = jwt.verify(token, secret);
+    if (typeof decoded === 'string') {
+        throw new Error('Invalid token payload');
     }
+    return decoded as JwtPayload;
 }
 
 

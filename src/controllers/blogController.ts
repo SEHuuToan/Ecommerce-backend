@@ -12,16 +12,20 @@ interface BlogInterface {
     image: string[];
     status: boolean;
 }
-//handle Error
-const handleError = (err: any) => {
-    console.log(err.message, err.code);
-    let errors = { username: '', password: '' }
-    //duplicate username error code
-    if (err.code === 11000) {
-        errors.username = 'That username already register!'
-    }
-    return errors;
+interface Image {
+    url: string;
+    public_id: string;
 }
+//handle Error
+// const handleError = (err: any) => {
+//     console.log(err.message, err.code);
+//     const errors = { username: '', password: '' }
+//     //duplicate username error code
+//     if (err.code === 11000) {
+//         errors.username = 'That username already register!'
+//     }
+//     return errors;
+// }
 const convertImageToBase64String = (file: Express.Multer.File) => {
     const base64String = file.buffer.toString('base64');
     return `data:${file.mimetype};base64,${base64String}`;
@@ -54,10 +58,14 @@ const addBlog = async (req: Request, res: Response) => {
             return res.status(400).json({ success: 0, message: 'No images uploaded' });
         }
         const blogData = JSON.parse(req.body.blog);
-        for (let file of files) {
+        for (const file of files) {
+            const allowedFormats = ['png', 'jpg', 'jpeg', 'svg'];
+            if (!allowedFormats.includes(file.mimetype.split('/')[1])) {
+                throw new Error('Unsupported file format');
+            }
             const result = await cloudinary.uploader.upload(convertImageToBase64String(file), {
                 folder: 'blogs',
-                format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                format: file.mimetype.split('/')[1],
                 transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
             });
             blogData.image.push({
@@ -123,7 +131,7 @@ const updateBlog = async (req: Request, res: Response) => {
             fileListChanged = true;
         }
         // Nếu không có gì thay đổi thì không cần update
-        if (!formDataChanged && !fileListChanged) {
+        if (!formDataChanged && !fileListChanged && !imageListChanged) {
             return res.status(400).json({ success: 0, message: 'No changes detected for update' });
         }
         // Cập nhật sản phẩm nếu có thay đổi trong formData
@@ -133,10 +141,14 @@ const updateBlog = async (req: Request, res: Response) => {
         // Cập nhật hình ảnh nếu có dữ liệu mới trong fileList
         if (fileListChanged) {
             const newImageUrls:{url: string, public_id: string}[] = [];
-            for (let file of files) {
+            for (const file of files) {
+                const allowedFormats = ['png', 'jpg', 'jpeg', 'svg'];
+                if (!allowedFormats.includes(file.mimetype.split('/')[1])) {
+                    throw new Error('Unsupported file format');
+                }
                 const result = await cloudinary.uploader.upload(convertImageToBase64String(file),{
                     folder: 'blogs',
-                    format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                    format: file.mimetype.split('/')[1],
                     transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
                 });
                 newImageUrls.push({
@@ -150,7 +162,7 @@ const updateBlog = async (req: Request, res: Response) => {
             }
             // Lọc ra các URL hình ảnh còn lại sau khi so sánh với mảng `image` được gửi từ front-end
             blog.image = blog.image.filter((image) => {
-                return blogData.image.some((img: any) => img.url === image.url);
+                return blogData.image.some((img: Image) => img.url === image.url);
             });
             // Thêm các URL hình ảnh mới vào mảng image của blog
             newImageUrls.forEach(newImage => {
@@ -185,7 +197,7 @@ const deleteBlog = async (req: Request, res: Response) => {
                 console.error(`Failed to delete image`);
             }
         } catch (error) {
-            console.error(`Failed to delete image: ${error.message}`);
+            console.error(`Failed to delete image`, error);
         }
     }
     await Blog.findByIdAndDelete(blogId);

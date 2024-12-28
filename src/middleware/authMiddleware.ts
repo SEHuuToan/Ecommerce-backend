@@ -28,6 +28,7 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
                 req.headers.authorization = newAccessToken;
                 return next();
             } catch (error) {
+                console.error('Refresh token verification failed:', error);
                 return res.status(401).send('Invalid refresh token');
             }
         } else {

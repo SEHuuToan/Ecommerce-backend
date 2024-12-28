@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import Product from '../models/products';
 import { v2 as cloudinary } from 'cloudinary';
-const port = 4000;
+// const port = process.env.PORT || 4000;
 
 interface ProductInterface {
     model: string;
@@ -12,11 +12,16 @@ interface ProductInterface {
     brand: string;
     option: string;
     category: string;
-    image: string[];
+    image: { url: string; public_id: string }[];
     price: number;
     status: boolean;
     description: string;
 }
+interface Image {
+    url: string;
+    public_id: string;
+}
+
 const convertImageToBase64String = (file: Express.Multer.File) => {
     const base64String = file.buffer.toString('base64');
     return `data:${file.mimetype};base64,${base64String}`;
@@ -105,8 +110,8 @@ const deleteProduct = async (req: Request, res: Response) => {
                 } else {
                     console.error(`Failed to delete image`);
                 }
-            } catch (error) {
-                console.error(`Failed to delete image: ${error.message}`);
+            } catch {
+                console.log(`Failed to delete image`);
             }
         }
         // Xóa sản phẩm sau khi đã xóa tất cả các hình ảnh
@@ -127,13 +132,17 @@ const createProduct = async (req: Request, res: Response) => {
         const files = req.files as Express.Multer.File[];
         console.log( 'files: ',files);
         if (!files || files.length === 0) {
-            return res.status(400).json({ success: 0, message: 'No images uploaded' });
+            return res.status(400).json({ success: 0, message: 'No images uploaded' }); 
         }
         const productData = JSON.parse(req.body.product);
-        for (let file of files) {
+        for (const file of files) {
+            const allowedFormats = ['png', 'jpg', 'jpeg', 'svg'];
+            if (!allowedFormats.includes(file.mimetype.split('/')[1])) {
+                throw new Error('Unsupported file format');
+            }
             const result = await cloudinary.uploader.upload(convertImageToBase64String(file), {
                 folder: 'products',
-                format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                format: file.mimetype.split('/')[1],
                 transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
             });
             productData.image.push({
@@ -226,7 +235,7 @@ const updateProduct2 = async (req: Request, res: Response) => {
             fileListChanged = true;
         }
         // Nếu không có gì thay đổi thì không cần update
-        if (!formDataChanged && !fileListChanged) {
+        if (!formDataChanged && !fileListChanged && !imageListChanged) {
             return res.status(400).json({ success: 0, message: 'No changes detected for update' });
         }
         // Cập nhật sản phẩm nếu có thay đổi trong formData
@@ -236,10 +245,14 @@ const updateProduct2 = async (req: Request, res: Response) => {
         // Cập nhật hình ảnh nếu có dữ liệu mới trong fileList
         if (fileListChanged) {
             const newImageUrls:{url: string, public_id: string}[] = [];
-            for (let file of files) {
+            for (const file of files) {
+                const allowedFormats = ['png', 'jpg', 'jpeg', 'svg'];
+                if (!allowedFormats.includes(file.mimetype.split('/')[1])) {
+                    throw new Error('Unsupported file format');
+                }
                 const result = await cloudinary.uploader.upload(convertImageToBase64String(file),{
                     folder: 'products',
-                    format: 'png' || 'jpg' || 'jpeg' || 'svg',
+                    format: file.mimetype.split('/')[1],
                     transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
                 });
                 newImageUrls.push({
@@ -253,7 +266,7 @@ const updateProduct2 = async (req: Request, res: Response) => {
             }
             // Lọc ra các URL hình ảnh còn lại sau khi so sánh với mảng `image` được gửi từ front-end
             product.image = product.image.filter((image) => {
-                return productData.image.some((img: any) => img.url === image.url);
+                return productData.image.some((img: Image) => img.url === image.url);
             });
             // Thêm các URL hình ảnh mới vào mảng image của sản phẩm
             newImageUrls.forEach(newImage => {
@@ -298,7 +311,7 @@ const searchProduct = async (req: Request, res: Response) => {
 //         res.status(500).send(error);
 //     }
 // }
-const getAllImageCloudinary = async (req: Request, res: Response) => {
+const getAllImageCloudinary = async () => {
     const options = {
         resource_type:"image", folder:"products", max_results: 100
     }
@@ -318,15 +331,14 @@ const uploadImages = async (req: Request, res: Response): Promise<string[]> => {
             throw new Error("Please upload a file!");
         }
         const files = req.files as Express.Multer.File[];
-        const imageUrls = files.map(file => {
-            return `http://localhost:${port}/api/images/${file.filename}`;
-        });
+        const imageUrls = files.map(file => `/api/images/${file.filename}`);
         res.json({
             success: 1,
             imageUrls: imageUrls
         });
         return imageUrls;
     } catch (error) {
+        console.error('Failed to upload images:', error);
         throw new Error("Failed to upload images");
     }
 }

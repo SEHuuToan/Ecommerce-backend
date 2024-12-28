@@ -1,17 +1,18 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import User from '../models/userAdmins';
 import { hashPassword, comparePassword } from '../services/authService';
 import { generateAccessToken, generateRefreshToken } from '../utils/authUtils';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { MongoServerError } from 'mongodb';
 
 dotenv.config();
 
 const refreshSecretKey = process.env.JWT_REFRESH_SECRET_KEY as string;
 //handle Error
-const handleError = (err: any) => {
+const handleError = (err: MongoServerError) => {
     console.log(err.message, err.code);
-    let errors = { username: '', password: '' }
+    const errors = { username: '', password: '' }
     //duplicate username error code
     if (err.code === 11000) {
         errors.username = 'That username already register!'

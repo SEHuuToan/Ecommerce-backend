@@ -1,8 +1,6 @@
 import {v2 as cloudinary} from 'cloudinary';
 import multer from 'multer';
-import path from 'path';
 import dotenv from 'dotenv';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 dotenv.config();
 cloudinary.config({
