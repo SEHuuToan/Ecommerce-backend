@@ -3,7 +3,7 @@ import User from '../models/userAdmins';
 import { hashPassword, comparePassword } from '../services/authService';
 import { generateAccessToken, generateRefreshToken } from '../utils/authUtils';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import { MongoServerError } from 'mongodb';
 
 dotenv.config();

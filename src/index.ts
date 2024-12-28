@@ -38,7 +38,7 @@ import cors from 'cors';
 import productRoutes from './routes/product';
 import authRoutes from './routes/authRoutes';
 import blogRoutes from './routes/blogRoute';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 

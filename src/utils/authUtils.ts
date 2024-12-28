@@ -1,6 +1,6 @@
 import { hashPassword, comparePassword } from '../services/authService';
 import jwt, { JwtPayload as DefaultJwtPayload } from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 dotenv.config();
 
 const refreshSecretKey = process.env.JWT_REFRESH_SECRET_KEY as string;

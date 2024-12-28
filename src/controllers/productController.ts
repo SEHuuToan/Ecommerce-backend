@@ -105,7 +105,7 @@ const deleteProduct = async (req: Request, res: Response) => {
         for (const imageUrl of productImages) {
             try {
                 const deleteImage = await cloudinary.uploader.destroy(imageUrl)
-                if (deleteImage.result === 'ok') {
+                if (!deleteImage) {
                     console.log(`Deleted image successfully`);
                 } else {
                     console.error(`Failed to delete image`);
@@ -363,7 +363,7 @@ const deleteImage = async (req: Request, res: Response) => {
         const public_id = product.image[imageIndex].public_id;
          // Xóa hình ảnh khỏi Cloudinary
          const deleteResult = await cloudinary.uploader.destroy(public_id);
-         if (deleteResult.result !== 'ok') {
+         if (!deleteResult) {
              return res.status(500).json({ success: 0, message: 'Failed to delete image from Cloudinary!' });
          }
         // Xóa URL của ảnh trong mảng image
