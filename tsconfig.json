@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "typeRoots": ["./node_modules/@types", "./src/types"],
+        "typeRoots": ["./node_modules/@types", "../node_modules/@types", "../../node_modules/@types", "./src/types"],
         "types": ["node", "jsonwebtoken", "cookie-parser", "bcrypt"],
         "target": "ES6",
         "module": "CommonJS",
