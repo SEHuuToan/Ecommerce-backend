@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, generateAccessToken, } from '../utils/authUtils';
-import { TokenExpiredError } from 'jsonwebtoken';
 
 const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
     const token = req.headers.authorization;
@@ -13,7 +12,7 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
         return next();
     }
     catch (error) {
-        if (error.name === TokenExpiredError.name) {
+        if (error.name === 'TokenExpiredError') {
             const refreshToken = req.cookies['refreshToken'];
             if (!refreshToken) {
                 return res.status(401).send('Refresh token missing');
