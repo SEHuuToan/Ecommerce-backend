@@ -33,8 +33,6 @@ const verifyToken = (token: string, type: 'access' | 'refresh'): JwtPayload => {
     }
     return decoded as JwtPayload;
 }
-
-
 export {
     hashPasswordUtils,
     comparePasswordUtils,
