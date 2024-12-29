@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const UserAdminSchema = new mongoose.Schema({
+    _id: { type: mongoose.Types.ObjectId },
     username: { type: String, require: true, unique: true, lowercase: true },
     password: { type: String, require: true, minLength: 6 },
 })
