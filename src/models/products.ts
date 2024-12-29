@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const ProductSchema = new mongoose.Schema({
+    _id: {type: String},
     name: { type: String, required: true },
     odo: { type: String, required: true },
     color: { type: String, required: true },
