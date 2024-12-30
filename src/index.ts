@@ -46,16 +46,13 @@ dotenv.config();
 const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const hostname = process.env.HOST_NAME || '0.0.0.0';
 
-const allowedOrigins = [
-    'http://localhost:3000', // Phát triển local
-    'https://ecommerce-frontend-beta-eight.vercel.app', // URL front-end sau khi deploy
-];
-const corsOptions = {
-    origin: allowedOrigins, // Danh sách các origin được phép
-    credentials: true, // Để cho phép gửi cookie
-};
+// const allowedOrigins = [
+//     'http://localhost:3000', // Phát triển local
+//     'https://ecommerce-frontend-beta-eight.vercel.app', // URL front-end sau khi deploy
+// ];
+
 const app = express();
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
