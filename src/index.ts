@@ -50,9 +50,12 @@ const allowedOrigins = [
     'http://localhost:3000', // Phát triển local
     'https://ecommerce-frontend-beta-eight.vercel.app', // URL front-end sau khi deploy
 ];
-
+const corsOptions = {
+    origin: allowedOrigins, // Danh sách các origin được phép
+    credentials: true, // Để cho phép gửi cookie
+};
 const app = express();
-app.use(cors(allowedOrigins));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
