@@ -6,6 +6,7 @@ interface AuthenticatedRequest extends Request {
   }
 const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     let tokenHeader = req.headers.authorization;
+    console.log("TokenHeader: ", tokenHeader);
     if (!tokenHeader) {
         return res.status(401).send('Access Denied Wrong TokenHeader');
     }
@@ -13,6 +14,7 @@ const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFun
         tokenHeader.split(' ')[1];
     }
     const token = tokenHeader
+    console.log("token: ", token);
     if (!token) {
         return res.status(401).send('Access Denied Wrong token after split Bearer');
     }
