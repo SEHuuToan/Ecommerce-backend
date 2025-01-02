@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken } from '../utils/authUtils';
 import jwt from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
 import { MongoServerError } from 'mongodb';
+import mongoose from 'mongoose';
 
 dotenv.config();
 
@@ -55,10 +56,9 @@ const LoginPost = async (req: Request, res: Response) => {
         if (!isMatch) {
             return res.status(400).send('Sai tai khoan hoac mat khau');
         }
-        const accessToken = generateAccessToken(username);
-        const refreshToken = generateRefreshToken(username);
-        // Set refresh token as HTTP-only cookie
-        // res.cookie('refreshToken', refreshToken, { httpOnly: false, secure: true, maxAge: 24 * 60 * 60 * 1000 });
+        const accessToken = generateAccessToken(user.id);
+        const refreshToken = generateRefreshToken(user.id);
+        res.cookie('accessToken', accessToken, { httpOnly: true, secure: false, maxAge: 24 * 60 * 60 * 1000 });
         res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: false, maxAge: 24 * 60 * 60 * 1000 });
         res.status(200).json({ accessToken, refreshToken });
     } catch (error) {
@@ -72,14 +72,14 @@ const logout = (req: Request, res: Response) => {
     res.status(200).send('Đăng xuất thành công');
 }
 const refreshToken = (req: Request, res: Response) => {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies['refreshToken'];
     if (!refreshToken) {
         return res.status(401).send('Access Denied. No refreshToken provided.');
     }
     try {
-        const { username } = jwt.verify(refreshToken, refreshSecretKey) as { username: string };
+        const { id } = jwt.verify(refreshToken, refreshSecretKey) as { id: mongoose.ObjectId };
         // console.log('Username from Refresh Token:', username); // Ghi log username
-        const accessToken = generateAccessToken(username);
+        const accessToken = generateAccessToken(id);
         res.status(200).json({ accessToken });
     } catch (error) {
         console.error('Refresh Token Error:', error); // Ghi log lỗi

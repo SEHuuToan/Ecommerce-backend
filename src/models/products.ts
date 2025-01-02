@@ -1,8 +1,9 @@
-import mongoose from "mongoose";
+import mongoose, { SchemaTypeOptions } from "mongoose";
 
 const ProductSchema = new mongoose.Schema({
     _id: { type: mongoose.Types.ObjectId },
     name: { type: String, required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, required: true },
     odo: { type: String, required: true },
     color: { type: String, required: true },
     model: { type: String, required: true },

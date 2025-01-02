@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
 import Product from '../models/products';
 import { v2 as cloudinary } from 'cloudinary';
+import mongoose from 'mongoose';
 // const port = process.env.PORT || 4000;
-
+interface AuthenticatedRequest extends Request {
+    decoded?: {id: mongoose.ObjectId};
+  }
 interface ProductInterface {
     model: string;
     name: string;
@@ -128,7 +131,11 @@ const deleteProduct = async (req: Request, res: Response) => {
 };
 
 
-const createProduct = async (req: Request, res: Response) => {
+const createProduct = async (req: AuthenticatedRequest, res: Response) => {
+    // const loginId = req.body;
+    const decode = req.decoded;
+    // console.log("loginId: ", loginId);
+    // console.log("decode: ", decode);
     try {
         const files = req.files as Express.Multer.File[];
         console.log( 'files: ',files);
@@ -151,6 +158,8 @@ const createProduct = async (req: Request, res: Response) => {
                 public_id: result.public_id,
             });
         }
+        productData.user = decode.id;
+
         const requiredFields = ['price', 'category', 'option', 'brand', 'model', 'color', 'odo', 'name'];
         for (const field of requiredFields) {
             if (!productData[field]) {

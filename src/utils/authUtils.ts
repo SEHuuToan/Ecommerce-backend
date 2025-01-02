@@ -1,13 +1,14 @@
 import { hashPassword, comparePassword } from '../services/authService';
 import jwt, { JwtPayload as DefaultJwtPayload } from 'jsonwebtoken';
 import * as dotenv from 'dotenv';
+import mongoose from 'mongoose';
 dotenv.config();
 
 const refreshSecretKey = process.env.JWT_REFRESH_SECRET_KEY as string;
 const secretKey = process.env.JWT_SECRET_KEY as string;
 
 interface JwtPayload extends DefaultJwtPayload {
-    username: string;
+    id: mongoose.ObjectId;
     role: 'user' | 'admin';
 }
 
@@ -17,18 +18,21 @@ async function hashPasswordUtils(password: string) {
 async function comparePasswordUtils(password: string, hashedPassword: string) {
     return await comparePassword(password, hashedPassword);
 }
-const generateAccessToken = (username: string): string => {
-    const accesstoken = jwt.sign({ username }, secretKey, { expiresIn: '45m' }); // Thời gian hết hạn là 45phut
+const generateAccessToken = (id: mongoose.ObjectId): string => {
+    const accesstoken = jwt.sign({ id }, secretKey, { expiresIn: '45m' }); // Thời gian hết hạn là 45phut
     return accesstoken;
 }
-const generateRefreshToken = (username: string): string => {
-    const refreshToken = jwt.sign({ username }, refreshSecretKey, { expiresIn: '1d' }); // Thời gian hết hạn là 1 ngay
+const generateRefreshToken = (id: mongoose.ObjectId): string => {
+    const refreshToken = jwt.sign({ id }, refreshSecretKey, { expiresIn: '1d' }); // Thời gian hết hạn là 1 ngay
     return refreshToken;
 }
 const verifyToken = (token: string, type: 'access' | 'refresh'): JwtPayload => {
     const secret = type === 'access' ? secretKey : refreshSecretKey;
-    const decoded = jwt.verify(token, secret);
-    if (typeof decoded === 'string') {
+    const isTrue = jwt.verify(token, secret);
+    let decoded
+    if(isTrue){
+         decoded = jwt.decode(token);
+    }else{
         throw new Error('Invalid token payload');
     }
     return decoded as JwtPayload;

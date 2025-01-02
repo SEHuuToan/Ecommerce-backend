@@ -1,6 +1,7 @@
+import mongoose from 'mongoose';
 declare module 'jsonwebtoken' {
     export interface JwtPayload {
-      username: string;
+      id: mongoose.ObjectId;
       role: 'user' | 'admin';
     }
   
