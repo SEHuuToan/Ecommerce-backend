@@ -6,16 +6,19 @@ interface AuthenticatedRequest extends Request {
   }
 const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     let tokenHeader = req.headers.authorization;
-    if(tokenHeader){
-    tokenHeader.split(' ')[1];
-        }
-    const token = tokenHeader
-
     if (!tokenHeader) {
-        return res.status(401).send('Access Denied');
+        return res.status(401).send('Access Denied Wrong TokenHeader');
     }
+    if(tokenHeader){
+        tokenHeader.split(' ')[1];
+    }
+    const token = tokenHeader
+    if (!token) {
+        return res.status(401).send('Access Denied Wrong token after split Bearer');
+    }
+ 
     try {
-        const decoded = verifyToken(tokenHeader, 'access');
+        const decoded = verifyToken(token, 'access');
         req.decoded = decoded
         return next();
     }
@@ -28,11 +31,9 @@ const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFun
             try {
                 const { id } = verifyToken(refreshToken, 'refresh') as { id: mongoose.ObjectId };
                 const newAccessToken = generateAccessToken(id);
-                res.setHeader('Authorization', newAccessToken);
+                res.setHeader('Authorization', `Bearer ${newAccessToken}`);
                 // Add new access token to request headers
-                req.headers.authorization = newAccessToken;
-                // Retry the original request with the new token
-                req.headers.authorization = newAccessToken;
+                req.headers.authorization = `Bearer ${newAccessToken}`;
                 return next();
             } catch (error) {
                 console.error('Refresh token verification failed:', error);
