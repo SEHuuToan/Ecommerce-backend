@@ -7,18 +7,17 @@ interface AuthenticatedRequest extends Request {
 const authenticateJWT = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     let tokenHeader = req.headers.authorization;
     if (!tokenHeader) {
-        return res.status(401).send('Access Denied Wrong TokenHeader');
+       tokenHeader = req.cookies['accessToken'];
     }
-    if(tokenHeader){
-        tokenHeader.split(' ')[1];
+    if (!tokenHeader) {
+        return res.status(401).send('Access Denied: No tokenheader provided');
     }
-    const token = tokenHeader
-    if (!token) {
-        return res.status(401).send('Access Denied Wrong token after split Bearer');
+    if(tokenHeader.startsWith('Bearer ')){
+        tokenHeader = tokenHeader.split(' ')[1];
     }
  
     try {
-        const decoded = verifyToken(token, 'access');
+        const decoded = verifyToken(tokenHeader, 'access');
         req.decoded = decoded
         return next();
     }
