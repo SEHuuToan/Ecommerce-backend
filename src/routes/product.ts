@@ -17,7 +17,7 @@ router.put('/update-product/:id', authenticateJWT, uploadCloudinary, productCont
 router.get('/search/:query', productController.searchProduct);
 router.delete('/:id', authenticateJWT, productController.deleteProduct);
 router.get('/images', productController.getAllImageCloudinary);
-router.post("/upload", authenticateJWT, upload.array('product', 12), productController.uploadImages);
+router.post("/upload", upload.array('product', 12), productController.uploadImages);
 router.delete('/images/:productId/:filename', authenticateJWT, productController.deleteImage);
 router.get('/:id', productController.getProductById);
 export default router;
