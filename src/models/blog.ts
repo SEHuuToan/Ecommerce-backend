@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const BlogSchema = new mongoose.Schema({
-    _id: { type: mongoose.Types.ObjectId },
     title: { type: String},
     header: { type: String},
     body1: { type: String},

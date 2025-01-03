@@ -138,7 +138,6 @@ const createProduct = async (req: AuthenticatedRequest, res: Response) => {
     // console.log("decode: ", decode);
     try {
         const files = req.files as Express.Multer.File[];
-        console.log( 'files: ',files);
         if (!files || files.length === 0) {
             return res.status(400).json({ success: 0, message: 'No images uploaded' }); 
         }
@@ -152,6 +151,9 @@ const createProduct = async (req: AuthenticatedRequest, res: Response) => {
                 folder: 'products',
                 format: file.mimetype.split('/')[1],
                 transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
+            }).catch(error => {
+                console.log('Cloudinary upload error: ', error);
+                throw error;
             });
             productData.image.push({
                 url: result.secure_url,
@@ -159,19 +161,24 @@ const createProduct = async (req: AuthenticatedRequest, res: Response) => {
             });
         }
         productData.user = decode.id;
-
         const requiredFields = ['price', 'category', 'option', 'brand', 'model', 'color', 'odo', 'name'];
         for (const field of requiredFields) {
             if (!productData[field]) {
                 return res.status(400).json({ success: 0, message: `Field ${field} is required` });
             }
         }
-        const product = new Product(productData);
-        await product.save();
-        res.json({
-            success: true,
-            product,
-        })
+        try {
+            const product = new Product(productData);
+            await product.save();
+            res.status(200).json({ success: true, product })
+        } catch (error) {
+            console.error('Error saving product:', error.message);
+            res.status(500).json({ success: false, error: error.message });
+        }
+        // res.json({
+        //     success: true,
+        //     product,
+        // })
     } catch (error) {
         res.status(500).send(error);
     }
@@ -229,12 +236,12 @@ const updateProduct2 = async (req: Request, res: Response) => {
                 imageListChanged = true;
             } else {
                 productData.image.forEach((imageUrl: string) => {
-                    if (!productFromDB.image.includes(imageUrl)) {
+                    if (!productFromDB.image.some((image) => image.url === imageUrl)) {
                         imageListChanged = true;
                     }
                 });
-                productFromDB.image.forEach((imageUrl: string) => {
-                    if (!productData.image.includes(imageUrl)) {
+                productFromDB.image.forEach((image) => {
+                    if (!productData.image.includes(image.url)) {
                         imageListChanged = true;
                     }
                 });
@@ -275,7 +282,7 @@ const updateProduct2 = async (req: Request, res: Response) => {
                 return res.status(404).json({ success: 0, message: 'Product not found' });
             }
             // Lọc ra các URL hình ảnh còn lại sau khi so sánh với mảng `image` được gửi từ front-end
-            product.image = product.image.filter((image) => {
+            product.image as mongoose.Types.DocumentArray<{ url: string; public_id: string }> == product.image.filter((image) => {
                 return productData.image.some((img: Image) => img.url === image.url);
             });
             // Thêm các URL hình ảnh mới vào mảng image của sản phẩm
