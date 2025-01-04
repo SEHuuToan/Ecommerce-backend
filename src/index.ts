@@ -47,7 +47,7 @@ const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const hostname = process.env.HOST_NAME || '0.0.0.0';
 
 const allowedOrigins = [
-   'http://localhost:3000', 'https://ecommerce-frontend-beta-eight.vercel.app',
+   'http://localhost:5173', 'https://ecommerce-frontend-beta-eight.vercel.app',
    'http://localhost:3001', 'https://ecommerce-admin-panel-nu.vercel.app'
 ]
 
