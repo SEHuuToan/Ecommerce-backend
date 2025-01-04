@@ -270,7 +270,7 @@ const updateProduct2 = async (req: Request, res: Response) => {
                 const result = await cloudinary.uploader.upload(convertImageToBase64String(file),{
                     folder: 'products',
                     format: file.mimetype.split('/')[1],
-                    transformation: [{ width: 1024, height: 768, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
+                    transformation: [{ width: 800, height: 600, crop: 'limit', quality: 'auto:good' }], // Tuỳ chỉnh kích thước và chất lượng ảnh
                 });
                 newImageUrls.push({
                     url: result.secure_url,
